@@ -78,18 +78,6 @@
     }
   }
 
-  function ensureAutoEnableIfNeeded() {
-    var body = document.body;
-    if (!body) return;
-
-    var nodes = document.querySelectorAll("[rt-liquid-glass]");
-    var hasNodes = nodes && nodes.length > 0;
-
-    if (!hasAttrAnywhere("rt-liquid-glass") && hasNodes) {
-      body.setAttribute("rt-liquid-glass", "");
-    }
-  }
-
   function isAttrPresent(v) {
     return v !== null && v !== undefined;
   }
@@ -194,11 +182,10 @@
   }
 
   function init() {
-    ensureAutoEnableIfNeeded();
-
     var enabledRoot = hasAttrAnywhere("rt-liquid-glass");
     var nodes = document.querySelectorAll("[rt-liquid-glass]");
     var hasNodes = nodes && nodes.length > 0;
+
     var shouldRun = enabledRoot || hasNodes;
     if (!shouldRun) return;
 
@@ -219,15 +206,12 @@
     var baseBg =
       parseStr(getAttr("rt-liquid-glass-base-bg"), "") ||
       "rgba(255, 255, 255, 0.025)";
-
     var transitionMs = parseNum(getAttr("rt-liquid-glass-transition-ms"), 300);
-
     var observeThreshold = parseNum(
       getAttr("rt-liquid-glass-observe-threshold"),
       0.15
     );
     observeThreshold = clamp(observeThreshold, 0, 1);
-
     var observeRootMargin =
       parseStr(getAttr("rt-liquid-glass-observe-root-margin"), "") || "0px";
 
@@ -379,8 +363,8 @@
       if (opts.revealDuration) {
         el.style.setProperty("--rt-reveal-duration", opts.revealDuration);
       }
-      el.classList.add("rt-reveal-hidden");
       if (revealObserver) {
+        el.classList.add("rt-reveal-hidden");
         revealObserver.observe(el);
       } else {
         el.classList.remove("rt-reveal-hidden");
@@ -392,7 +376,6 @@
       var blur = opts && typeof opts.blur === "number" ? opts.blur : 0;
       var fallbackBlur =
         opts && typeof opts.fallbackBlur === "number" ? opts.fallbackBlur : 10;
-
       var finalBlur = blur > 0 ? blur : fallbackBlur;
       finalBlur = clamp(finalBlur, 0, 200);
       el.style.setProperty("--rt-fallback-blur", finalBlur + "px");
@@ -418,7 +401,6 @@
       }
 
       var elRadius = getBorderRadiusPx(el);
-
       var mapWidth = elWidth;
       var mapHeight = elHeight;
       var mapRadius = elRadius;
@@ -428,10 +410,10 @@
         mapWidth = Math.max(1, Math.floor(elWidth * ratio));
         mapHeight = Math.max(1, Math.floor(elHeight * ratio));
         mapRadius = elRadius * ratio;
+      } else {
+        mapWidth = Math.max(1, Math.floor(mapWidth));
+        mapHeight = Math.max(1, Math.floor(mapHeight));
       }
-
-      mapWidth = Math.max(1, Math.floor(mapWidth));
-      mapHeight = Math.max(1, Math.floor(mapHeight));
 
       var uniqueId = "rt-liquid-" + idx;
       var mapSvgString = createDisplacementMap(mapWidth, mapHeight, mapRadius);
@@ -469,8 +451,7 @@
 
     function shouldDisableEl(el) {
       var v = getAttrFrom(el, "rt-liquid-glass");
-      if (v === "false") return true;
-      return false;
+      return v === "false";
     }
 
     function buildPerElOptions(el) {
@@ -480,23 +461,21 @@
 
       if (typeof opts.blur !== "number") opts.blur = 0;
       if (typeof opts.scale !== "number") opts.scale = 30;
-
       if (opts.map === undefined) opts.map = null;
 
       if (opts.reveal === undefined) {
         var rawReveal = getAttrFrom(el, "rt-liquid-glass-reveal");
         opts.reveal = rawReveal !== null && rawReveal !== "false";
-        if (rawReveal && rawReveal !== "true") {
-          var s = String(rawReveal).trim();
-          if (s && s.toLowerCase() !== "false") opts.revealDuration = s;
+
+        if (opts.reveal && rawReveal !== "" && rawReveal !== "true") {
+          opts.revealDuration = rawReveal;
         }
       }
-
       return opts;
     }
 
     function makeApi() {
-      var api = {
+      return {
         __initialized: true,
         isLiquidEnabled: function () {
           return enableLiquidEffect;
@@ -505,12 +484,18 @@
           return supportsBackdrop;
         },
         refresh: function () {
+          if (svgContainer) {
+            svgContainer.innerHTML = "";
+          }
+
           var els = document.querySelectorAll("[rt-liquid-glass]");
           for (var i = 0; i < els.length; i++) {
             var el = els[i];
             if (shouldDisableEl(el)) continue;
             var opts = buildPerElOptions(el);
+
             applyReveal(el, opts);
+
             if (!enableLiquidEffect) {
               applyFallback(el, opts);
             } else {
@@ -523,9 +508,8 @@
             if (revealObserver) revealObserver.disconnect();
           } catch (e) {}
           try {
-            if (svgContainer && svgContainer.parentNode) {
+            if (svgContainer && svgContainer.parentNode)
               svgContainer.parentNode.removeChild(svgContainer);
-            }
           } catch (e) {}
           try {
             if (style && style.parentNode) style.parentNode.removeChild(style);
@@ -537,7 +521,6 @@
           }
         },
       };
-      return api;
     }
 
     var api = makeApi();
