@@ -1,23 +1,25 @@
-# rt-package-name
+# rt-liquid-glass
 
 ![Platform: Web](https://img.shields.io/badge/platform-web-000000)
 ![JavaScript](https://img.shields.io/badge/language-JavaScript-F7DF1E?logo=javascript)
-[![npm version](https://img.shields.io/npm/v/%40rethink-js%2Frt-<package-name>.svg)](https://www.npmjs.com/package/@rethink-js/rt-<package-name>)
-[![jsDelivr hits](https://data.jsdelivr.com/v1/package/npm/@rethink-js/rt-<package-name>/badge)](https://www.jsdelivr.com/package/npm/@rethink-js/rt-<package-name>)
-[![bundle size](https://img.shields.io/bundlephobia/min/%40rethink-js%2Frt-<package-name>)](https://bundlephobia.com/package/@rethink-js/rt-<package-name>)
+[![npm version](https://img.shields.io/npm/v/%40rethink-js%2Frt-liquid-glass.svg)](https://www.npmjs.com/package/@rethink-js/rt-liquid-glass)
+[![jsDelivr hits](https://data.jsdelivr.com/v1/package/npm/@rethink-js/rt-liquid-glass/badge)](https://www.jsdelivr.com/package/npm/@rethink-js/rt-liquid-glass)
+[![bundle size](https://img.shields.io/bundlephobia/min/%40rethink-js%2Frt-liquid-glass)](https://bundlephobia.com/package/@rethink-js/rt-liquid-glass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-FFD632.svg)](https://opensource.org/licenses/MIT)
 
-`rt-package-name` is a lightweight JavaScript utility that <one-sentence clear purpose> with:
+`rt-liquid-glass` is a lightweight JavaScript utility that applies an attribute-driven liquid glass effect using SVG displacement maps and CSS backdrop filters, with safe fallbacks for unsupported browsers, featuring:
 
-- **Automatic dependency loading** (no manual installs)
 - **Zero-config defaults** (works out of the box)
 - Attribute-driven configuration
-- Support for **multiple instances**
-- A clean global API under `window.rt<PackageName>`
-- Defensive fallbacks to avoid runtime crashes
+- Automatic browser feature detection
+- Defensive fallbacks (never crashes your page)
+- Support for multiple elements
+- A clean global API under `window.rtLiquidGlass`
+- Safe degradation on unsupported browsers
 - Clear console logs for debugging and verification
 
-**Primary dependency (GitHub):** <https://github.com/author/repo>
+**Primary inspiration:**  
+https://www.ekino.fr/publications/liquid-glass-in-css-and-svg/
 
 ---
 
@@ -29,7 +31,7 @@
 - [2. Quick Start](#2-quick-start)
 - [3. Activation Rules](#3-activation-rules)
 - [4. Configuration (HTML Attributes)](#4-configuration-html-attributes)
-- [5. Multiple Instances](#5-multiple-instances)
+- [5. Multiple Elements](#5-multiple-elements)
 - [6. Global API](#6-global-api)
 - [7. Console Logging](#7-console-logging)
 - [8. Troubleshooting](#8-troubleshooting)
@@ -42,13 +44,13 @@
 ### 1.1 CDN (jsDelivr)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@rethink-js/rt-<package-name>@latest/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@rethink-js/rt-liquid-glass@latest/dist/index.min.js"></script>
 ```
 
 ### 1.2 npm
 
 ```bash
-npm install @rethink-js/rt-<package-name>
+npm install @rethink-js/rt-liquid-glass
 ```
 
 Then bundle or load `dist/index.min.js` as appropriate for your build setup.
@@ -57,20 +59,23 @@ Then bundle or load `dist/index.min.js` as appropriate for your build setup.
 
 ## 2. Quick Start
 
-Add the script to your page. With no configuration provided, `rt-<package-name>` will:
+Add the script to your page. With no configuration provided, `rt-liquid-glass` will:
 
-* Auto-initialize itself when applicable
-* Load required dependencies dynamically
-* Apply safe defaults
-* Expose the global API
+- Auto-initialize itself when applicable
+- Detect browser capabilities
+- Apply safe defaults
+- Fallback gracefully when unsupported
+- Expose the global API
 
 Example:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@rethink-js/rt-<package-name>@latest/dist/index.min.js"></script>
+<div rt-liquid-glass>Liquid Glass Panel</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@rethink-js/rt-liquid-glass@latest/dist/index.min.js"></script>
 ```
 
-> Note: If you do not provide any `rt-<package-name>-*` attributes, the library runs using its internal defaults.
+> Note: If you do not provide any `rt-liquid-glass-*` attributes, the library runs using its internal defaults.
 
 ---
 
@@ -78,58 +83,87 @@ Example:
 
 The library activates when **any** of the following are true:
 
-* A root attribute exists (e.g. `rt-<package-name>` on `<html>` or `<body>`)
-* One or more instance elements are detected
-* No explicit opt-out is defined (auto-enable fallback)
+- One or more elements with `rt-liquid-glass` are detected
+- A root activation attribute exists on `<html>` or `<body>`
+- No explicit opt-out is defined (auto-enable fallback)
 
-If none are found, the library may defensively attach itself to a sensible default to ensure functionality.
+If none are found, the library will not run.
 
 ---
 
 ## 4. Configuration (HTML Attributes)
 
-### Root Activation
+### Core Activation
 
 ```html
-<body rt-<package-name></body>
+<div rt-liquid-glass></div>
 ```
 
-### Global Options
+### Disable on Specific Elements
 
 ```html
-<body
-  rt-<package-name>
-  rt-<package-name>-option-a="value"
-  rt-<package-name>-option-b="value"
-></body>
+<div rt-liquid-glass="false"></div>
 ```
-
-### Core Attributes
-
-| Attribute                   | Description            |
-| --------------------------- | ---------------------- |
-| `rt-<package-name>`         | Enables root behavior  |
-| `rt-<package-name>-id`      | Optional identifier    |
-| `rt-<package-name>-enabled` | Enable / disable       |
-| `rt-<package-name>-debug`   | Enable console logging |
-
-(Add / remove rows as required per package.)
 
 ---
 
-### Per-Instance Configuration
+### Core Attributes
+
+| Attribute                         | Description                        |
+| --------------------------------- | ---------------------------------- |
+| `rt-liquid-glass`                 | Enables the effect                 |
+| `rt-liquid-glass="false"`         | Disables effect                    |
+| `rt-liquid-glass-debug`           | Enable console logging             |
+| `rt-liquid-glass-disable-firefox` | Disable SVG liquid mode on Firefox |
+
+---
+
+### Visual Controls
+
+| Attribute                       | Description                        |
+| ------------------------------- | ---------------------------------- |
+| `rt-liquid-glass-blur`          | Gaussian blur amount (px)          |
+| `rt-liquid-glass-scale`         | Displacement intensity             |
+| `rt-liquid-glass-map`           | Resolution cap for SVG map         |
+| `rt-liquid-glass-fallback-blur` | Fallback blur when SVG is disabled |
+
+Example:
 
 ```html
 <div
-  rt-<package-name>-instance
-  rt-<package-name>-id="example"
+  rt-liquid-glass
+  rt-liquid-glass-blur="12"
+  rt-liquid-glass-scale="40"
+  rt-liquid-glass-map="256"
 ></div>
 ```
 
-| Attribute                    | Description            |
-| ---------------------------- | ---------------------- |
-| `rt-<package-name>-instance` | Marks instance element |
-| `rt-<package-name>-id`       | Instance identifier    |
+---
+
+### Reveal Animation
+
+Reveal animation is opacity-based and optional.
+
+```html
+<div rt-liquid-glass rt-liquid-glass-reveal></div>
+```
+
+Custom duration:
+
+```html
+<div rt-liquid-glass rt-liquid-glass-reveal="1.5s"></div>
+```
+
+---
+
+### Global Styling Overrides
+
+| Attribute                             | Description                     |
+| ------------------------------------- | ------------------------------- |
+| `rt-liquid-glass-base-bg`             | Background color                |
+| `rt-liquid-glass-transition-ms`       | Transition duration             |
+| `rt-liquid-glass-observe-threshold`   | IntersectionObserver threshold  |
+| `rt-liquid-glass-observe-root-margin` | IntersectionObserver rootMargin |
 
 ---
 
@@ -137,34 +171,27 @@ If none are found, the library may defensively attach itself to a sensible defau
 
 ```html
 <body
-  rt-<package-name>
-  rt-<package-name>-options-json='{"key":"value"}'
+  rt-liquid-glass
+  rt-liquid-glass-options-json='{"blur":12,"scale":50}'
 ></body>
 ```
 
-Used for advanced or dependency-specific configuration that doesn’t warrant individual attributes.
+Used for advanced or programmatic configuration.
 
 ---
 
-### Dependency Loader Overrides
+## 5. Multiple Elements
 
-| Attribute                             | Description             |
-| ------------------------------------- | ----------------------- |
-| `rt-<package-name>-src`               | Override dependency CDN |
-| `rt-<package-name>-observe-resize`    | Enable ResizeObserver   |
-| `rt-<package-name>-observe-mutations` | Enable MutationObserver |
+`rt-liquid-glass` automatically supports multiple elements on the same page.
 
----
+Each element:
 
-## 5. Multiple Instances
+- Is measured independently
+- Gets its own SVG displacement filter
+- Has isolated configuration
+- Degrades independently if unsupported
 
-`rt-<package-name>` supports multiple independent instances on the same page.
-
-Each instance:
-
-* Has its own configuration
-* Is registered internally
-* Can be controlled individually via the API
+No additional setup is required.
 
 ---
 
@@ -173,60 +200,72 @@ Each instance:
 Once initialized:
 
 ```js
-window.rt<PackageName>;
+window.rtLiquidGlass;
 ```
 
-### Common Methods
+### Methods
 
-| Method         | Description          |
-| -------------- | -------------------- |
-| `ids()`        | Returns instance IDs |
-| `get(id)`      | Get instance         |
-| `start(id?)`   | Start                |
-| `stop(id?)`    | Stop                 |
-| `toggle(id?)`  | Toggle               |
-| `destroy(id?)` | Cleanup              |
+| Method      | Description                    |
+| ----------- | ------------------------------ |
+| `refresh()` | Re-scan and reapply effects    |
+| `destroy()` | Remove styles, observers, SVGs |
 
-If a root instance exists, it may also be exposed directly:
+---
+
+### Feature Flags
 
 ```js
-window.<dependencyName>;
+rtLiquidGlass.isLiquidEnabled();
+rtLiquidGlass.supportsBackdrop();
 ```
 
 ---
 
 ## 7. Console Logging
 
-When enabled, the library logs:
+When enabled via:
 
-* Instance ID
-* Target element
-* Resolved configuration
-* Dependency load status
+```html
+<body rt-liquid-glass-debug></body>
+```
 
-This makes debugging transparent and predictable.
+The library logs:
+
+- Browser capability detection
+- Liquid vs fallback mode
+- Global resolved options
+- Runtime activation state
 
 ---
 
 ## 8. Troubleshooting
 
-### Feature not activating
+### Effect not visible
 
-* Ensure the correct `rt-*` attribute exists
-* Confirm the script loaded successfully
-* Check console logs for resolved config
+- Ensure `backdrop-filter` is supported
+- Check Firefox fallback behavior
+- Verify the element has a visible background
+- Ensure there's content behind the glass
 
-### Dependency failed to load
+---
 
-* Verify CDN URLs
-* Ensure network access
-* Override source via attribute if required
+### Looks like a normal blur
 
-### Unexpected behavior
+This means SVG displacement is disabled due to:
 
-* Check for conflicting scripts
-* Verify attribute spelling
-* Confirm instance isolation
+- Browser limitations
+- Firefox protection
+- Manual fallback
+
+This is expected and intentional.
+
+---
+
+### Nothing happens
+
+- Ensure the script loaded
+- Check console for logs
+- Confirm attribute spelling
 
 ---
 
@@ -234,8 +273,8 @@ This makes debugging transparent and predictable.
 
 MIT License
 
-Package: `@rethink-js/rt-<package-name>` <br>
-GitHub: [https://github.com/Rethink-JS/rt-package-name](https://github.com/Rethink-JS/rt-package-name)
+Package: `@rethink-js/rt-liquid-glass` <br>
+GitHub: [https://github.com/Rethink-JS/rt-liquid-glass](https://github.com/Rethink-JS/rt-liquid-glass)
 
 ---
 

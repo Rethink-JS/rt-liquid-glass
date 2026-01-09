@@ -1,21 +1,30 @@
 {
-  "name": "@rethink-js/rt-*",
+  "name": "@rethink-js/rt-liquid-glass",
   "version": "1.0.0",
-  "description": "",
+  "description": "Rethink JS utility to apply an attribute-driven liquid glass effect (with SVG displacement + backdrop-filter, and safe fallbacks).",
   "keywords": [
     "javascript",
-    "rethink-js"
+    "rethink-js",
+    "rt",
+    "rt-liquid-glass",
+    "liquid-glass",
+    "glassmorphism",
+    "backdrop-filter",
+    "svg-filter",
+    "feDisplacementMap",
+    "webflow",
+    "css"
   ],
   "author": "Rethink JS <opensource@rethink-js.org> (https://github.com/Rethink-JS)",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rethink-JS/rt-*.git"
+    "url": "git+https://github.com/Rethink-JS/rt-liquid-glass.git"
   },
   "bugs": {
-    "url": "https://github.com/Rethink-JS/rt-*/issues"
+    "url": "https://github.com/Rethink-JS/rt-liquid-glass/issues"
   },
-  "homepage": "https://github.com/Rethink-JS/rt-*#readme",
+  "homepage": "https://github.com/Rethink-JS/rt-liquid-glass#readme",
   "main": "dist/index.js",
   "unpkg": "dist/index.min.js",
   "jsdelivr": "dist/index.min.js",
