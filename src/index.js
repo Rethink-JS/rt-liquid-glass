@@ -101,20 +101,16 @@
 
     var opts = {};
 
-    if (hasRaw("blur")) {
-      var blur = parseNum(getRaw("blur"), undefined);
-      if (blur !== undefined) opts.blur = blur;
-    }
+    if (hasRaw("blur")) opts.blur = parseNum(getRaw("blur"), undefined);
+    if (hasRaw("scale")) opts.scale = parseNum(getRaw("scale"), undefined);
+    if (hasRaw("map")) opts.map = parseNum(getRaw("map"), undefined);
 
-    if (hasRaw("scale")) {
-      var scale = parseNum(getRaw("scale"), undefined);
-      if (scale !== undefined) opts.scale = scale;
-    }
-
-    if (hasRaw("map")) {
-      var mapQ = parseNum(getRaw("map"), undefined);
-      if (mapQ !== undefined) opts.map = mapQ;
-    }
+    // New Custom Attributes
+    if (hasRaw("tint")) opts.tint = parseStr(getRaw("tint"), undefined);
+    if (hasRaw("edge-thickness"))
+      opts.edgeThickness = parseNum(getRaw("edge-thickness"), undefined);
+    if (hasRaw("edge-softness"))
+      opts.edgeSoftness = parseNum(getRaw("edge-softness"), undefined);
 
     if (hasRaw("reveal")) {
       var revealRaw = getRaw("reveal");
@@ -129,56 +125,21 @@
       }
     }
 
-    if (hasRaw("disable-firefox")) {
+    if (hasRaw("disable-firefox"))
       opts.disableFirefox = parseBool(getRaw("disable-firefox"), true);
-    }
-
-    if (hasRaw("fallback-blur")) {
-      var fb = parseNum(getRaw("fallback-blur"), undefined);
-      if (fb !== undefined) opts.fallbackBlur = fb;
-    }
-
-    if (hasRaw("base-bg")) {
-      opts.baseBg = parseStr(getRaw("base-bg"), "");
-    }
-
-    if (hasRaw("transition-ms")) {
-      var tms = parseNum(getRaw("transition-ms"), undefined);
-      if (tms !== undefined) opts.transitionMs = tms;
-    }
-
-    if (hasRaw("observe-threshold")) {
-      var thr = parseNum(getRaw("observe-threshold"), undefined);
-      if (thr !== undefined) opts.observeThreshold = thr;
-    }
-
+    if (hasRaw("fallback-blur"))
+      opts.fallbackBlur = parseNum(getRaw("fallback-blur"), undefined);
+    if (hasRaw("base-bg")) opts.baseBg = parseStr(getRaw("base-bg"), "");
+    if (hasRaw("transition-ms"))
+      opts.transitionMs = parseNum(getRaw("transition-ms"), undefined);
+    if (hasRaw("observe-threshold"))
+      opts.observeThreshold = parseNum(getRaw("observe-threshold"), undefined);
     if (hasRaw("observe-root-margin")) {
       var rm = parseStr(getRaw("observe-root-margin"), "");
       if (rm) opts.observeRootMargin = rm;
     }
 
-    var extra = localOrGlobal(prefix + "options-json");
-    if (extra) {
-      try {
-        var parsed = JSON.parse(extra);
-        if (parsed && typeof parsed === "object") {
-          for (var k in parsed) opts[k] = parsed[k];
-        }
-      } catch (e) {}
-    }
-
     return opts;
-  }
-
-  function sanitizeOptionsForLog(opts) {
-    var out = {};
-    for (var k in opts) {
-      if (!Object.prototype.hasOwnProperty.call(opts, k)) continue;
-      var v = opts[k];
-      if (typeof v === "function") out[k] = "[Function]";
-      else out[k] = v;
-    }
-    return out;
   }
 
   function init() {
@@ -189,18 +150,15 @@
     var shouldRun = enabledRoot || hasNodes;
     if (!shouldRun) return;
 
-    var debug = parseBool(getAttr("rt-liquid-glass-debug"), true);
-
     var supportsBackdrop =
       safeCSSSupports("backdrop-filter", "none") ||
       safeCSSSupports("-webkit-backdrop-filter", "none");
 
     var disableFirefox = parseBool(
       getAttr("rt-liquid-glass-disable-firefox"),
-      true
+      true,
     );
     var isFirefox = isFirefoxUA();
-
     var enableLiquidEffect = supportsBackdrop && !(disableFirefox && isFirefox);
 
     var baseBg =
@@ -209,33 +167,34 @@
     var transitionMs = parseNum(getAttr("rt-liquid-glass-transition-ms"), 300);
     var observeThreshold = parseNum(
       getAttr("rt-liquid-glass-observe-threshold"),
-      0.15
+      0.15,
     );
     observeThreshold = clamp(observeThreshold, 0, 1);
     var observeRootMargin =
       parseStr(getAttr("rt-liquid-glass-observe-root-margin"), "") || "0px";
 
     var style = document.createElement("style");
+
     style.innerHTML =
       "\n[rt-liquid-glass]{" +
-      "\n  background:" +
+      "\n  background-color: var(--rt-liquid-tint, " +
       baseBg +
-      ";" +
-      "\n  display:inline-block;" +
-      "\n  position:relative;" +
-      "\n  overflow:hidden;" +
+      ");" +
+      "\n  will-change: transform, backdrop-filter;" +
       "\n  transition:backdrop-filter " +
       transitionMs +
       "ms ease,-webkit-backdrop-filter " +
       transitionMs +
       "ms ease,opacity " +
       transitionMs +
+      "ms ease, background-color " +
+      transitionMs +
       "ms ease;" +
       "\n}" +
       '\n[rt-liquid-glass="false"]{' +
       "\n  backdrop-filter:none;" +
       "\n  -webkit-backdrop-filter:none;" +
-      "\n  background:transparent;" +
+      "\n  background-color:transparent;" +
       "\n}" +
       "\n[rt-liquid-glass].rt-reveal-hidden{" +
       "\n  opacity:0;" +
@@ -275,7 +234,6 @@
       threshold: observeThreshold,
       rootMargin: observeRootMargin,
     };
-
     var revealObserver = null;
     if ("IntersectionObserver" in window) {
       revealObserver = new IntersectionObserver(function (entries, observer) {
@@ -290,9 +248,30 @@
       }, observerOptions);
     }
 
-    function createDisplacementMap(width, height, radius) {
-      var strokeWidth = Math.min(width, height) * 0.15;
-      var blurStd = strokeWidth * 0.5;
+    var resizeObserver = null;
+    if ("ResizeObserver" in window) {
+      resizeObserver = new ResizeObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          var entry = entries[i];
+          var el = entry.target;
+          var idx = el.getAttribute("data-rt-idx");
+          if (idx !== null) {
+            var opts = buildPerElOptions(el);
+            if (enableLiquidEffect) applyLiquid(el, idx, opts);
+          }
+        }
+      });
+    }
+
+    function createDisplacementMap(
+      width,
+      height,
+      radius,
+      edgeThickness,
+      edgeSoftness,
+    ) {
+      var strokeWidth = Math.min(width, height) * edgeThickness;
+      var blurStd = strokeWidth * edgeSoftness;
       return (
         '<svg xmlns="http://www.w3.org/2000/svg" width="' +
         width +
@@ -360,9 +339,8 @@
 
     function applyReveal(el, opts) {
       if (!opts || !opts.reveal) return;
-      if (opts.revealDuration) {
+      if (opts.revealDuration)
         el.style.setProperty("--rt-reveal-duration", opts.revealDuration);
-      }
       if (revealObserver) {
         el.classList.add("rt-reveal-hidden");
         revealObserver.observe(el);
@@ -379,6 +357,7 @@
       var finalBlur = blur > 0 ? blur : fallbackBlur;
       finalBlur = clamp(finalBlur, 0, 200);
       el.style.setProperty("--rt-fallback-blur", finalBlur + "px");
+      if (opts.tint) el.style.setProperty("--rt-liquid-tint", opts.tint);
     }
 
     function applyLiquid(el, idx, opts) {
@@ -387,6 +366,12 @@
       var blur = opts && typeof opts.blur === "number" ? opts.blur : 0;
       var scale = opts && typeof opts.scale === "number" ? opts.scale : 30;
       var mapQ = opts && typeof opts.map === "number" ? opts.map : null;
+      var eThick =
+        opts && typeof opts.edgeThickness === "number"
+          ? opts.edgeThickness
+          : 0.15;
+      var eSoft =
+        opts && typeof opts.edgeSoftness === "number" ? opts.edgeSoftness : 0.5;
 
       blur = clamp(blur, 0, 200);
       scale = clamp(scale, 0, 300);
@@ -416,20 +401,43 @@
       }
 
       var uniqueId = "rt-liquid-" + idx;
-      var mapSvgString = createDisplacementMap(mapWidth, mapHeight, mapRadius);
+      var mapSvgString = createDisplacementMap(
+        mapWidth,
+        mapHeight,
+        mapRadius,
+        eThick,
+        eSoft,
+      );
       var mapUrl =
         "data:image/svg+xml;charset=utf-8," + encodeURIComponent(mapSvgString);
 
-      var filterSvg = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg"
-      );
-      filterSvg.setAttribute("id", "svg-" + uniqueId);
+      var fX = -Math.floor(elWidth * 0.2);
+      var fY = -Math.floor(elHeight * 0.2);
+      var fW = Math.floor(elWidth * 1.4);
+      var fH = Math.floor(elHeight * 1.4);
+
+      var filterSvg = document.getElementById("svg-" + uniqueId);
+      if (!filterSvg) {
+        filterSvg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        filterSvg.setAttribute("id", "svg-" + uniqueId);
+        svgContainer.appendChild(filterSvg);
+      }
 
       filterSvg.innerHTML =
         '\n<filter id="filter-' +
         uniqueId +
-        '" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">' +
+        '" filterUnits="userSpaceOnUse" x="' +
+        fX +
+        '" y="' +
+        fY +
+        '" width="' +
+        fW +
+        '" height="' +
+        fH +
+        '" color-interpolation-filters="sRGB">' +
         '\n  <feImage href="' +
         mapUrl +
         '" result="dispMap" x="0" y="0" width="' +
@@ -442,31 +450,27 @@
         '" xChannelSelector="R" yChannelSelector="G" />' +
         "\n</filter>";
 
-      svgContainer.appendChild(filterSvg);
-
       var blurPart = blur > 0 ? " blur(" + blur + "px)" : "";
       var urlPart = "url(#filter-" + uniqueId + ")";
+
       el.style.setProperty("--rt-liquid-final-filter", urlPart + blurPart);
+      if (opts.tint) el.style.setProperty("--rt-liquid-tint", opts.tint);
     }
 
     function shouldDisableEl(el) {
-      var v = getAttrFrom(el, "rt-liquid-glass");
-      return v === "false";
+      return getAttrFrom(el, "rt-liquid-glass") === "false";
     }
 
     function buildPerElOptions(el) {
       var opts = readOptions(function (name) {
         return getAttrFrom(el, name);
       });
-
       if (typeof opts.blur !== "number") opts.blur = 0;
       if (typeof opts.scale !== "number") opts.scale = 30;
       if (opts.map === undefined) opts.map = null;
-
       if (opts.reveal === undefined) {
         var rawReveal = getAttrFrom(el, "rt-liquid-glass-reveal");
         opts.reveal = rawReveal !== null && rawReveal !== "false";
-
         if (opts.reveal && rawReveal !== "" && rawReveal !== "true") {
           opts.revealDuration = rawReveal;
         }
@@ -477,47 +481,21 @@
     function makeApi() {
       return {
         __initialized: true,
-        isLiquidEnabled: function () {
-          return enableLiquidEffect;
-        },
-        supportsBackdrop: function () {
-          return supportsBackdrop;
-        },
         refresh: function () {
-          if (svgContainer) {
-            svgContainer.innerHTML = "";
-          }
-
+          if (svgContainer) svgContainer.innerHTML = "";
           var els = document.querySelectorAll("[rt-liquid-glass]");
           for (var i = 0; i < els.length; i++) {
             var el = els[i];
             if (shouldDisableEl(el)) continue;
+            el.setAttribute("data-rt-idx", i);
             var opts = buildPerElOptions(el);
-
             applyReveal(el, opts);
-
             if (!enableLiquidEffect) {
               applyFallback(el, opts);
             } else {
               applyLiquid(el, i, opts);
+              if (resizeObserver) resizeObserver.observe(el);
             }
-          }
-        },
-        destroy: function () {
-          try {
-            if (revealObserver) revealObserver.disconnect();
-          } catch (e) {}
-          try {
-            if (svgContainer && svgContainer.parentNode)
-              svgContainer.parentNode.removeChild(svgContainer);
-          } catch (e) {}
-          try {
-            if (style && style.parentNode) style.parentNode.removeChild(style);
-          } catch (e) {}
-          try {
-            delete window[RT_NS];
-          } catch (e) {
-            window[RT_NS] = undefined;
           }
         },
       };
@@ -525,24 +503,7 @@
 
     var api = makeApi();
     window[RT_NS] = api;
-
     api.refresh();
-
-    if (debug) {
-      try {
-        console.log("[rt-liquid-glass] init:", {
-          enableLiquidEffect: enableLiquidEffect,
-          supportsBackdrop: supportsBackdrop,
-          isFirefox: isFirefox,
-          disableFirefox: disableFirefox,
-          global: sanitizeOptionsForLog(
-            readOptions(function () {
-              return null;
-            })
-          ),
-        });
-      } catch (e) {}
-    }
   }
 
   if (document.readyState === "loading") {
@@ -550,10 +511,4 @@
   } else {
     init();
   }
-
-  window[RT_NS] = window[RT_NS] || {
-    __initialized: true,
-    refresh: function () {},
-    destroy: function () {},
-  };
 })();

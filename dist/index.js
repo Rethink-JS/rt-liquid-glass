@@ -1,4 +1,4 @@
-/*! @rethink-js/rt-liquid-glass v1.0.1 | MIT */
+/*! @rethink-js/rt-liquid-glass v1.0.2 | MIT */
 (() => {
   // src/index.js
   (function() {
@@ -84,18 +84,14 @@
         return isAttrPresent(getRaw(name));
       }
       var opts = {};
-      if (hasRaw("blur")) {
-        var blur = parseNum(getRaw("blur"), void 0);
-        if (blur !== void 0) opts.blur = blur;
-      }
-      if (hasRaw("scale")) {
-        var scale = parseNum(getRaw("scale"), void 0);
-        if (scale !== void 0) opts.scale = scale;
-      }
-      if (hasRaw("map")) {
-        var mapQ = parseNum(getRaw("map"), void 0);
-        if (mapQ !== void 0) opts.map = mapQ;
-      }
+      if (hasRaw("blur")) opts.blur = parseNum(getRaw("blur"), void 0);
+      if (hasRaw("scale")) opts.scale = parseNum(getRaw("scale"), void 0);
+      if (hasRaw("map")) opts.map = parseNum(getRaw("map"), void 0);
+      if (hasRaw("tint")) opts.tint = parseStr(getRaw("tint"), void 0);
+      if (hasRaw("edge-thickness"))
+        opts.edgeThickness = parseNum(getRaw("edge-thickness"), void 0);
+      if (hasRaw("edge-softness"))
+        opts.edgeSoftness = parseNum(getRaw("edge-softness"), void 0);
       if (hasRaw("reveal")) {
         var revealRaw = getRaw("reveal");
         var s = String(revealRaw || "").trim();
@@ -108,49 +104,20 @@
           opts.revealDuration = s;
         }
       }
-      if (hasRaw("disable-firefox")) {
+      if (hasRaw("disable-firefox"))
         opts.disableFirefox = parseBool(getRaw("disable-firefox"), true);
-      }
-      if (hasRaw("fallback-blur")) {
-        var fb = parseNum(getRaw("fallback-blur"), void 0);
-        if (fb !== void 0) opts.fallbackBlur = fb;
-      }
-      if (hasRaw("base-bg")) {
-        opts.baseBg = parseStr(getRaw("base-bg"), "");
-      }
-      if (hasRaw("transition-ms")) {
-        var tms = parseNum(getRaw("transition-ms"), void 0);
-        if (tms !== void 0) opts.transitionMs = tms;
-      }
-      if (hasRaw("observe-threshold")) {
-        var thr = parseNum(getRaw("observe-threshold"), void 0);
-        if (thr !== void 0) opts.observeThreshold = thr;
-      }
+      if (hasRaw("fallback-blur"))
+        opts.fallbackBlur = parseNum(getRaw("fallback-blur"), void 0);
+      if (hasRaw("base-bg")) opts.baseBg = parseStr(getRaw("base-bg"), "");
+      if (hasRaw("transition-ms"))
+        opts.transitionMs = parseNum(getRaw("transition-ms"), void 0);
+      if (hasRaw("observe-threshold"))
+        opts.observeThreshold = parseNum(getRaw("observe-threshold"), void 0);
       if (hasRaw("observe-root-margin")) {
         var rm = parseStr(getRaw("observe-root-margin"), "");
         if (rm) opts.observeRootMargin = rm;
       }
-      var extra = localOrGlobal(prefix + "options-json");
-      if (extra) {
-        try {
-          var parsed = JSON.parse(extra);
-          if (parsed && typeof parsed === "object") {
-            for (var k in parsed) opts[k] = parsed[k];
-          }
-        } catch (e) {
-        }
-      }
       return opts;
-    }
-    function sanitizeOptionsForLog(opts) {
-      var out = {};
-      for (var k in opts) {
-        if (!Object.prototype.hasOwnProperty.call(opts, k)) continue;
-        var v = opts[k];
-        if (typeof v === "function") out[k] = "[Function]";
-        else out[k] = v;
-      }
-      return out;
     }
     function init() {
       var enabledRoot = hasAttrAnywhere("rt-liquid-glass");
@@ -158,7 +125,6 @@
       var hasNodes = nodes && nodes.length > 0;
       var shouldRun = enabledRoot || hasNodes;
       if (!shouldRun) return;
-      var debug = parseBool(getAttr("rt-liquid-glass-debug"), true);
       var supportsBackdrop = safeCSSSupports("backdrop-filter", "none") || safeCSSSupports("-webkit-backdrop-filter", "none");
       var disableFirefox = parseBool(
         getAttr("rt-liquid-glass-disable-firefox"),
@@ -175,7 +141,7 @@
       observeThreshold = clamp(observeThreshold, 0, 1);
       var observeRootMargin = parseStr(getAttr("rt-liquid-glass-observe-root-margin"), "") || "0px";
       var style = document.createElement("style");
-      style.innerHTML = "\n[rt-liquid-glass]{\n  background:" + baseBg + ";\n  display:inline-block;\n  position:relative;\n  overflow:hidden;\n  transition:backdrop-filter " + transitionMs + "ms ease,-webkit-backdrop-filter " + transitionMs + "ms ease,opacity " + transitionMs + 'ms ease;\n}\n[rt-liquid-glass="false"]{\n  backdrop-filter:none;\n  -webkit-backdrop-filter:none;\n  background:transparent;\n}\n[rt-liquid-glass].rt-reveal-hidden{\n  opacity:0;\n  transition:opacity 0s;\n}\n[rt-liquid-glass].rt-reveal-visible{\n  opacity:1;\n  transition:opacity var(--rt-reveal-duration, 1.0s) ease;\n}';
+      style.innerHTML = "\n[rt-liquid-glass]{\n  background-color: var(--rt-liquid-tint, " + baseBg + ");\n  will-change: transform, backdrop-filter;\n  transition:backdrop-filter " + transitionMs + "ms ease,-webkit-backdrop-filter " + transitionMs + "ms ease,opacity " + transitionMs + "ms ease, background-color " + transitionMs + 'ms ease;\n}\n[rt-liquid-glass="false"]{\n  backdrop-filter:none;\n  -webkit-backdrop-filter:none;\n  background-color:transparent;\n}\n[rt-liquid-glass].rt-reveal-hidden{\n  opacity:0;\n  transition:opacity 0s;\n}\n[rt-liquid-glass].rt-reveal-visible{\n  opacity:1;\n  transition:opacity var(--rt-reveal-duration, 1.0s) ease;\n}';
       if (enableLiquidEffect) {
         style.innerHTML += "\n[rt-liquid-glass]{\n  -webkit-backdrop-filter:var(--rt-liquid-final-filter, none);\n  backdrop-filter:var(--rt-liquid-final-filter, none);\n}";
       } else {
@@ -206,9 +172,23 @@
           }
         }, observerOptions);
       }
-      function createDisplacementMap(width, height, radius) {
-        var strokeWidth = Math.min(width, height) * 0.15;
-        var blurStd = strokeWidth * 0.5;
+      var resizeObserver = null;
+      if ("ResizeObserver" in window) {
+        resizeObserver = new ResizeObserver(function(entries) {
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            var el = entry.target;
+            var idx = el.getAttribute("data-rt-idx");
+            if (idx !== null) {
+              var opts = buildPerElOptions(el);
+              if (enableLiquidEffect) applyLiquid(el, idx, opts);
+            }
+          }
+        });
+      }
+      function createDisplacementMap(width, height, radius, edgeThickness, edgeSoftness) {
+        var strokeWidth = Math.min(width, height) * edgeThickness;
+        var blurStd = strokeWidth * edgeSoftness;
         return '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + " " + height + '"><defs><linearGradient id="gradX" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#000000" /><stop offset="100%" stop-color="#ff0000" /></linearGradient><linearGradient id="gradY" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#000000" /><stop offset="100%" stop-color="#00ff00" /></linearGradient><filter id="blurEdge"><feGaussianBlur in="SourceGraphic" stdDeviation="' + blurStd + '" /></filter></defs><rect width="100%" height="100%" fill="url(#gradX)" /><rect width="100%" height="100%" fill="url(#gradY)" style="mix-blend-mode: screen;" /><rect x="0" y="0" width="' + width + '" height="' + height + '" rx="' + radius + '" ry="' + radius + '" fill="none" stroke="#808080" stroke-width="' + strokeWidth * 2 + '" filter="url(#blurEdge)" /></svg>';
       }
       function getBorderRadiusPx(el) {
@@ -234,9 +214,8 @@
       }
       function applyReveal(el, opts) {
         if (!opts || !opts.reveal) return;
-        if (opts.revealDuration) {
+        if (opts.revealDuration)
           el.style.setProperty("--rt-reveal-duration", opts.revealDuration);
-        }
         if (revealObserver) {
           el.classList.add("rt-reveal-hidden");
           revealObserver.observe(el);
@@ -251,12 +230,15 @@
         var finalBlur = blur > 0 ? blur : fallbackBlur;
         finalBlur = clamp(finalBlur, 0, 200);
         el.style.setProperty("--rt-fallback-blur", finalBlur + "px");
+        if (opts.tint) el.style.setProperty("--rt-liquid-tint", opts.tint);
       }
       function applyLiquid(el, idx, opts) {
         if (!svgContainer) return;
         var blur = opts && typeof opts.blur === "number" ? opts.blur : 0;
         var scale = opts && typeof opts.scale === "number" ? opts.scale : 30;
         var mapQ = opts && typeof opts.map === "number" ? opts.map : null;
+        var eThick = opts && typeof opts.edgeThickness === "number" ? opts.edgeThickness : 0.15;
+        var eSoft = opts && typeof opts.edgeSoftness === "number" ? opts.edgeSoftness : 0.5;
         blur = clamp(blur, 0, 200);
         scale = clamp(scale, 0, 300);
         var size = ensureMeasuredSize(el);
@@ -280,22 +262,35 @@
           mapHeight = Math.max(1, Math.floor(mapHeight));
         }
         var uniqueId = "rt-liquid-" + idx;
-        var mapSvgString = createDisplacementMap(mapWidth, mapHeight, mapRadius);
-        var mapUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(mapSvgString);
-        var filterSvg = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "svg"
+        var mapSvgString = createDisplacementMap(
+          mapWidth,
+          mapHeight,
+          mapRadius,
+          eThick,
+          eSoft
         );
-        filterSvg.setAttribute("id", "svg-" + uniqueId);
-        filterSvg.innerHTML = '\n<filter id="filter-' + uniqueId + '" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">\n  <feImage href="' + mapUrl + '" result="dispMap" x="0" y="0" width="' + mapWidth + '" height="' + mapHeight + '" preserveAspectRatio="none" />\n  <feDisplacementMap in="SourceGraphic" in2="dispMap" scale="' + scale + '" xChannelSelector="R" yChannelSelector="G" />\n</filter>';
-        svgContainer.appendChild(filterSvg);
+        var mapUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(mapSvgString);
+        var fX = -Math.floor(elWidth * 0.2);
+        var fY = -Math.floor(elHeight * 0.2);
+        var fW = Math.floor(elWidth * 1.4);
+        var fH = Math.floor(elHeight * 1.4);
+        var filterSvg = document.getElementById("svg-" + uniqueId);
+        if (!filterSvg) {
+          filterSvg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg"
+          );
+          filterSvg.setAttribute("id", "svg-" + uniqueId);
+          svgContainer.appendChild(filterSvg);
+        }
+        filterSvg.innerHTML = '\n<filter id="filter-' + uniqueId + '" filterUnits="userSpaceOnUse" x="' + fX + '" y="' + fY + '" width="' + fW + '" height="' + fH + '" color-interpolation-filters="sRGB">\n  <feImage href="' + mapUrl + '" result="dispMap" x="0" y="0" width="' + mapWidth + '" height="' + mapHeight + '" preserveAspectRatio="none" />\n  <feDisplacementMap in="SourceGraphic" in2="dispMap" scale="' + scale + '" xChannelSelector="R" yChannelSelector="G" />\n</filter>';
         var blurPart = blur > 0 ? " blur(" + blur + "px)" : "";
         var urlPart = "url(#filter-" + uniqueId + ")";
         el.style.setProperty("--rt-liquid-final-filter", urlPart + blurPart);
+        if (opts.tint) el.style.setProperty("--rt-liquid-tint", opts.tint);
       }
       function shouldDisableEl(el) {
-        var v = getAttrFrom(el, "rt-liquid-glass");
-        return v === "false";
+        return getAttrFrom(el, "rt-liquid-glass") === "false";
       }
       function buildPerElOptions(el) {
         var opts = readOptions(function(name) {
@@ -316,47 +311,21 @@
       function makeApi() {
         return {
           __initialized: true,
-          isLiquidEnabled: function() {
-            return enableLiquidEffect;
-          },
-          supportsBackdrop: function() {
-            return supportsBackdrop;
-          },
           refresh: function() {
-            if (svgContainer) {
-              svgContainer.innerHTML = "";
-            }
+            if (svgContainer) svgContainer.innerHTML = "";
             var els = document.querySelectorAll("[rt-liquid-glass]");
             for (var i = 0; i < els.length; i++) {
               var el = els[i];
               if (shouldDisableEl(el)) continue;
+              el.setAttribute("data-rt-idx", i);
               var opts = buildPerElOptions(el);
               applyReveal(el, opts);
               if (!enableLiquidEffect) {
                 applyFallback(el, opts);
               } else {
                 applyLiquid(el, i, opts);
+                if (resizeObserver) resizeObserver.observe(el);
               }
-            }
-          },
-          destroy: function() {
-            try {
-              if (revealObserver) revealObserver.disconnect();
-            } catch (e) {
-            }
-            try {
-              if (svgContainer && svgContainer.parentNode)
-                svgContainer.parentNode.removeChild(svgContainer);
-            } catch (e) {
-            }
-            try {
-              if (style && style.parentNode) style.parentNode.removeChild(style);
-            } catch (e) {
-            }
-            try {
-              delete window[RT_NS];
-            } catch (e) {
-              window[RT_NS] = void 0;
             }
           }
         };
@@ -364,35 +333,12 @@
       var api = makeApi();
       window[RT_NS] = api;
       api.refresh();
-      if (debug) {
-        try {
-          console.log("[rt-liquid-glass] init:", {
-            enableLiquidEffect,
-            supportsBackdrop,
-            isFirefox,
-            disableFirefox,
-            global: sanitizeOptionsForLog(
-              readOptions(function() {
-                return null;
-              })
-            )
-          });
-        } catch (e) {
-        }
-      }
     }
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", init);
     } else {
       init();
     }
-    window[RT_NS] = window[RT_NS] || {
-      __initialized: true,
-      refresh: function() {
-      },
-      destroy: function() {
-      }
-    };
   })();
 })();
 //# sourceMappingURL=index.js.map

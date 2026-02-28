@@ -1,6 +1,6 @@
 {
   "name": "@rethink-js/rt-liquid-glass",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Rethink JS utility to apply an attribute-driven liquid glass effect (with SVG displacement + backdrop-filter, and safe fallbacks).",
   "keywords": [
     "rethink-js",
